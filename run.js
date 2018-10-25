@@ -8,13 +8,20 @@ var noRptsWithin                = 4; // There cannot be repeated numbers within 
 // I.e. if it is set to 4, the following sequence would not be generated: [1,2,3,1].
 // But this sequence might be: [1,2,3,4,1].
 var nBlanksBeforeCross          = 30; // Number of frames there's a blank before the fixation cross
+var preFixationMs = 500;
 var nCrossFrames                = 60; // Number of frames the fixation cross is displayed
+var fixationMs = 1000;
 var nBlanksAfterCross           = 30; // Number of frames there's a blank after the fixation cross
+var postFixationMs = 500;
 var nDgtFrames                  = 60; // Number of frames the digits are displayed
+var digitMs = 1000;
 var nBlanksBetweenDigits        = 30; // Number of frames there's a blank between digits
+var interDigitMs = 500;
 var nBlanksAfterLastDigit       = 30; // Number of frames there's a blank after the last digit
+var postSeqMs = 500;
 var gamify                      = true; // Set this to "true" to get the game-y version;; else "false"
 var nFeedbackFrames             = 120; // Number of frames feedback is shown (only matters if gamify = true)
+var feedbackMs = 2000;
 var practice_nDgtsToShow        = [2,2]; // Governs the number of digits shown in the practice trials (also governs the number of practice trials--set to [] for no practice).
 var nRetryFeedbackFrames        = 240; // Number of frames feedback is shown during practice when user is told to try again
 // Don't change anything from here on
@@ -49,10 +56,10 @@ function startPractice(){
         dgts = generatePracticeStimuli();
         ALL.style.cursor = "none";
         dialogArea.style.display = "none";
-        if(nBlanksBeforeCross > 0){
-            window.requestAnimationFrame(function(){wait(nBlanksBeforeCross,fixationCross)});
+        if (preFixationMs > 0) {
+            setTimeout(fixationCross, preFixationMs);
         } else {
-            window.requestAnimationFrame(fixationCross);
+            fixationCross();
         }
     } else {
         startTask();
@@ -81,62 +88,44 @@ function startTask(){
     isPractice = false;
     ALL.style.cursor = "none";
     dgts = generateStimuli();
-    if(nBlanksBeforeCross > 0){
-        window.requestAnimationFrame(function(){wait(nBlanksBeforeCross,fixationCross)});
+    if (preFixationMs > 0) {
+        setTimeout(fixationCross, preFixationMs);
+    } else {
+        fixationCross();
     }
-    else window.requestAnimationFrame(fixationCross);
 }
 
 function fixationCross(){
-    if(frameCount == 0){
-        numberDisplayArea.style.display = "block";
-        numberDisplayArea.textContent = "\u2022"; //dot
+    numberDisplayArea.style.display = "block";
+    numberDisplayArea.textContent = "\u2022"; //dot
+    frameCount = 0;
+    if (postFixationMs > 0) {
+        numberDisplayArea.textContent = '';
+        setTimeout(showDgt, postFixationMs);
+    } else {
+        showDgt();
     }
-    if(frameCount == nCrossFrames - 1){
-        frameCount = 0;
-        if(nBlanksAfterCross > 0){
-            window.requestAnimationFrame(function(){
-                numberDisplayArea.textContent = "";
-                wait(nBlanksAfterCross,showDgt);});
-        }
-        else window.requestAnimationFrame(showDgt);
-        return;
-    }
-    frameCount++;
-    window.requestAnimationFrame(fixationCross);
 }
 
 function showDgt(){
-    if(frameCount == 0){//first call
-        numberDisplayArea.textContent = dgts[trialCount][dgtCount];
-    }
-    if(frameCount == nDgtFrames - 1){//final call
-        frameCount = 0;
-        dgtCount++;
-        if(dgtCount == dgts[trialCount].length){//Get user input
-            if(nBlanksAfterLastDigit > 0){
-                window.requestAnimationFrame(function(){
-                    numberDisplayArea.style.display = "none";
-                    wait(nBlanksAfterLastDigit,getInput)});
-            } else {
-                window.requestAnimationFrame(function(){
-                    numberDisplayArea.style.display = "none";
-                    getInput()});
-            }
+    numberDisplayArea.textContent = dgts[trialCount][dgtCount];
+    dgtCount++;
+    if(dgtCount == dgts[trialCount].length){//Get user input
+        numberDisplayArea.style.display = 'none';
+        if (postSeqMs > 0) {
+            setTimeout(getInput, postSeqMs);
+        } else {
+            getInput();
         }
-        else{//Show the next digit
-            if(nBlanksBetweenDigits > 0){
-                window.requestAnimationFrame(function(){
-                    numberDisplayArea.textContent = "";
-                    wait(nBlanksBetweenDigits,showDgt)});
-            } else {
-                window.requestAnimationFrame(showDgt);
-            }
-        }
-        return;
     }
-    frameCount++;
-    window.requestAnimationFrame(showDgt);
+    else{//Show the next digit
+        if (interDigitMs > 0) {
+            numberDisplayArea.textContent = '';
+            setTimeout(showDgt, interDigitMs);
+        } else {
+            showDgt();
+        }
+    }
 }
 
 function getInput(){
@@ -245,7 +234,7 @@ function feedBackScreen(){
                                   Math.floor(nFeedbackFrames*1000/60/8) + 
                                   i*Math.floor(nFeedbackFrames*1000/60/30));
         }
-        window.requestAnimationFrame(function(){wait(nFeedbackFrames,nextTrial)});
+        setTimeout(nextTrial, feedbackMs);
     }
 }
 
@@ -280,11 +269,10 @@ function nextTrial(){
             nAllCorrect = 0;
         }
     }
-    if(nBlanksBeforeCross > 0){
-        window.requestAnimationFrame(function(){
-            wait(nBlanksBeforeCross,fixationCross)});
+    if (preFixationMs > 0) {
+        setTimeout(fixationCross, preFixationMs);
     } else {
-        window.requestAnimationFrame(fixationCross);
+        fixationCross();
     }
 }
 
