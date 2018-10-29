@@ -48,6 +48,7 @@ var dialogArea = document.getElementById("dialogArea");
 var numberDisplayArea = document.getElementById("numberDisplayArea");
 var inputArea = document.getElementById("inputArea");
 var fieldArea = document.getElementById("fieldArea");
+var submitButton = document.getElementById('submitButton');
 
 function startPractice(){
     blockCount = 0;
@@ -75,10 +76,20 @@ function afterPracticeScreen(){
     }
     ALL.style.cursor = "default";
     dialogArea.style.display = "block";
-    dialogArea.innerHTML = "<p class='dialog'>That was the end of the practice round.<br/>\
-                            Click to start the game for real<br/>\
-                            (There won't be any retries from here on):</p>\
-                            <button onclick='startTask()'>Start game</button>";
+    textArray = 
+        [
+            "That was the end of the practice round.",
+            "Click to start the game for real.",
+            "There won't be any retries from here on"
+        ];
+    var i, currText = document.createElement('p');
+    for (i = 0; i < textArray.length; i++) {
+        currText.textContent = textArray[i];
+        dialogArea.appendChild(currText);
+    }
+    var startButton = document.createElement('button');
+    startButton.textContent = 'Start game';
+    startButton.onclick = startTask;
 }
 
 function startTask(){
@@ -98,34 +109,37 @@ function startTask(){
 function fixationCross(){
     numberDisplayArea.style.display = "block";
     numberDisplayArea.textContent = "\u2022"; //dot
-    frameCount = 0;
     if (postFixationMs > 0) {
-        numberDisplayArea.textContent = '';
-        setTimeout(showDgt, postFixationMs);
+        setTimeout(function() {
+            numberDisplayArea.textContent = '';
+            setTimeout(showDgt, postFixationMs);
+        }, fixationMs);
     } else {
-        showDgt();
+        setTimeout(showDgt, fixationMs);
     }
 }
 
 function showDgt(){
     numberDisplayArea.textContent = dgts[trialCount][dgtCount];
     dgtCount++;
-    if(dgtCount == dgts[trialCount].length){//Get user input
-        numberDisplayArea.style.display = 'none';
-        if (postSeqMs > 0) {
-            setTimeout(getInput, postSeqMs);
-        } else {
-            getInput();
+    setTimeout(function() {
+        if(dgtCount == dgts[trialCount].length){//Get user input
+            numberDisplayArea.style.display = 'none';
+            if (postSeqMs > 0) {
+                setTimeout(getInput, postSeqMs);
+            } else {
+                getInput();
+            }
         }
-    }
-    else{//Show the next digit
-        if (interDigitMs > 0) {
-            numberDisplayArea.textContent = '';
-            setTimeout(showDgt, interDigitMs);
-        } else {
-            showDgt();
+        else{//Show the next digit
+            if (interDigitMs > 0) {
+                numberDisplayArea.textContent = '';
+                setTimeout(showDgt, interDigitMs);
+            } else {
+                showDgt();
+            }
         }
-    }
+    }, digitMs);
 }
 
 function getInput(){
@@ -142,9 +156,23 @@ function getInput(){
         fieldArea.children[i].value = "";
         fieldArea.children[i].disabled = true;
     }
-    fieldArea.children[0].disabled = false;
-    fieldArea.children[0].focus();
-    inputArea.children[0].innerHTML = "Input the digits <span style='color:blue'>IN REVERSE</span>"
+    fieldArea.firstChild.disabled = false;
+    fieldArea.firstChild.focus();
+    var instructions = document.createElement('p');
+    instructions.className = 'dialog';
+    var currInstructions = document.createElement('span');
+    currInstructions.textContent = 'Input the digits ';
+    instructions.appendChild(currInstructions);
+    currInstructions = document.createElement('span');
+    currInstructions.style.color = 'blue';
+    currInstructions.textContent = 'IN REVERSE';
+    instructions.appendChild(currInstructions);
+    while (inputArea.children.length > 0) {
+        inputArea.removeChild(inputArea.children[0]);
+    }
+    inputArea.appendChild(instructions);
+    inputArea.appendChild(fieldArea);
+    inputArea.appendChild(submitButton);
 }
 
 function evaluateSubmission(){
@@ -185,13 +213,17 @@ function evaluateSubmission(){
     }
 }
 
-function feedBackScreen(){
+function feedBackScreen() {
     ALL.style.cursor = "none";
     inputArea.style.display = "none";
     dialogArea.style.display = "block";
     var revDgts = dgts[trialCount].slice(0).reverse();
-    //var revUserInput = userInput.slice(0).reverse();
+    var replay, currText;
     if(isPractice && !allCorrect){
+        replay = document.createElement('p');
+        replay.className = 'dialog';
+        currText = document.createElement('span');
+        currText.textContent = 'Forward, the digits were:'
         replay = "<p class='dialog'>Forward, the digits were:</p>\
                   <p class='replay'>";
         for(i = 0; i < dgts[trialCount].length; i++){
