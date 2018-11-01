@@ -7,24 +7,16 @@ var filename = pID + "RDS";
 var noRptsWithin                = 4; // There cannot be repeated numbers within this number of stimuli
 // I.e. if it is set to 4, the following sequence would not be generated: [1,2,3,1].
 // But this sequence might be: [1,2,3,4,1].
-var nBlanksBeforeCross          = 30; // Number of frames there's a blank before the fixation cross
 var preFixationMs = 500;
-var nCrossFrames                = 60; // Number of frames the fixation cross is displayed
 var fixationMs = 1000;
-var nBlanksAfterCross           = 30; // Number of frames there's a blank after the fixation cross
 var postFixationMs = 500;
-var nDgtFrames                  = 60; // Number of frames the digits are displayed
 var digitMs = 1000;
-var nBlanksBetweenDigits        = 30; // Number of frames there's a blank between digits
 var interDigitMs = 500;
-var nBlanksAfterLastDigit       = 30; // Number of frames there's a blank after the last digit
 var postSeqMs = 500;
-var gamify                      = true; // Set this to "true" to get the game-y version;; else "false"
+var gamify = false; // Set this to "true" to get the game-y version;; else "false"
 var nFeedbackFrames             = 120; // Number of frames feedback is shown (only matters if gamify = true)
 var feedbackMs = 2000;
 var practice_nDgtsToShow        = [2,2]; // Governs the number of digits shown in the practice trials (also governs the number of practice trials--set to [] for no practice).
-var nRetryFeedbackFrames        = 240; // Number of frames feedback is shown during practice when user is told to try again
-// Don't change anything from here on
 
 var blockwise_nTrials = [2,3,5,5,5,5,5];
 var blockwise_nDgtsToShow = [2,3,4,5,6,7,8];
@@ -38,12 +30,14 @@ var outputText = "Trial,NumbersShown,Input,NewLine,";
 var dgts = [];
 var isPractice = true;
 var userInput;
-var score = 0;
+if (gamify) {
+    var score = 0;
+    var scoreArea = document.getElementById("scoreArea");
+}
 var trialwise_nDgtsToShow = practice_nDgtsToShow;
 var allCorrect, nAllCorrect = 0;
 
 var ALL = document.getElementsByTagName("html")[0];
-var scoreArea = document.getElementById("scoreArea");
 var dialogArea = document.getElementById("dialogArea");
 var numberDisplayArea = document.getElementById("numberDisplayArea");
 var inputArea = document.getElementById("inputArea");
@@ -75,6 +69,9 @@ function afterPracticeScreen(){
         scoreArea.style.visibility = "visible";
     }
     ALL.style.cursor = "default";
+    while (dialogArea.children.length > 0) {
+        dialogArea.removeChild(dialogArea.children[0]);
+    }
     dialogArea.style.display = "block";
     textArray = 
         [
@@ -82,14 +79,17 @@ function afterPracticeScreen(){
             "Click to start the game for real.",
             "There won't be any retries from here on"
         ];
-    var i, currText = document.createElement('p');
+    var i, currText;
     for (i = 0; i < textArray.length; i++) {
+        currText = document.createElement('p');
+        currText.className = 'dialog';
         currText.textContent = textArray[i];
         dialogArea.appendChild(currText);
     }
     var startButton = document.createElement('button');
     startButton.textContent = 'Start game';
     startButton.onclick = startTask;
+    dialogArea.appendChild(startButton);
 }
 
 function startTask(){
@@ -156,8 +156,7 @@ function getInput(){
         fieldArea.children[i].value = "";
         fieldArea.children[i].disabled = true;
     }
-    fieldArea.firstChild.disabled = false;
-    fieldArea.firstChild.focus();
+    fieldArea.children[0].disabled = false;
     var instructions = document.createElement('p');
     instructions.className = 'dialog';
     var currInstructions = document.createElement('span');
@@ -173,6 +172,7 @@ function getInput(){
     inputArea.appendChild(instructions);
     inputArea.appendChild(fieldArea);
     inputArea.appendChild(submitButton);
+    fieldArea.children[0].focus();
 }
 
 function evaluateSubmission(){
@@ -206,7 +206,7 @@ function evaluateSubmission(){
     outputText += (isPractice?0:(trialCount+1)) + "," +
                   dgts[trialCount].toString().replace(/,/g,'-') + "," +
                   userInput.toString().replace(/,/g,'-') + ",NewLine,";
-    if(gamify){
+    if (gamify || (!allCorrect && isPractice)) {
         feedBackScreen();
     } else {
         nextTrial();
@@ -216,63 +216,71 @@ function evaluateSubmission(){
 function feedBackScreen() {
     ALL.style.cursor = "none";
     inputArea.style.display = "none";
+    while (dialogArea.children.length > 0) {
+        dialogArea.removeChild(dialogArea.children[0]);
+    }
     dialogArea.style.display = "block";
-    var revDgts = dgts[trialCount].slice(0).reverse();
-    var replay, currText;
-    if(isPractice && !allCorrect){
-        replay = document.createElement('p');
-        replay.className = 'dialog';
+    var nNewPoints, replay = document.createElement('p'), revDgts = dgts[trialCount].slice(0).reverse();
+    replay.className = 'replay';
+    for(i = 0; i < dgts[trialCount].length; i++){
         currText = document.createElement('span');
-        currText.textContent = 'Forward, the digits were:'
-        replay = "<p class='dialog'>Forward, the digits were:</p>\
-                  <p class='replay'>";
-        for(i = 0; i < dgts[trialCount].length; i++){
-            replay += dgts[trialCount][i];
+        if(revDgts[i] == userInput[i]) {
+            nNewPoints++;
+            currText.style.color = 'green';
+        } else {
+            currText.style.color = 'red';
         }
-        
-        replay += "</p>\
-                   <p class='dialog'>That means you should have typed:</p>\
-                   <p class='replay'>"
-        var revDgts = dgts[trialCount].slice(0).reverse();
-        for(i = 0; i < dgts[trialCount].length; i++){
-            if(revDgts[i] == userInput[i]){
-                replay += "<span style='color: green;'>" + revDgts[i] + "</span>";
-            } else {
-                replay += "<span style='color: red;'>" + revDgts[i] + "</span>";
-            }
+        if (i < dgts[trialCount].length) {
+            currText.textContent = revDgts[i] + ' ';
         }
-        replay += "</p>\
-                   <button onclick='nextTrial()'>Try again</button>";
-        ALL.style.cursor = 'default';
-        dialogArea.innerHTML = replay;
-    } else {
-        replay = "<p class='replay'>";
-        var i, nNewPoints = 0;
-        for(i = 0; i < dgts[trialCount].length; i++){
-            if(revDgts[i] == userInput[i]){
-                nNewPoints++;
-                replay += "<span style='color: green;'>" + revDgts[i] + "</span>";
-            } else {
-                replay += "<span style='color: red;'>" + revDgts[i] + "</span>";
-            }
+        replay.appendChild(currText);
+    }
+    var i, currText, textArray = new Array(), classNameArray = new Array();
+    if (isPractice && !allCorrect) {
+        textArray = textArray.concat(
+            [
+                'Forward, the digits were:',
+                dgts[trialCount].join(' '),
+                'So you should have typed:'
+            ]);
+        classNameArray = classNameArray.concat(
+            [
+                'dialog',
+                'replay',
+                'dialog'
+            ]);
+        for (i = 0; i < textArray.length; i++) {
+            currText = document.createElement('p');
+            currText.className = classNameArray[i];
+            currText.textContent = textArray[i];
+            dialogArea.appendChild(currText);
         }
-        replay += "</p>";
-        dialogArea.innerHTML = replay;
-        scoreArea.style.visibility = "visible";
-        scoreArea.textContent = "Score: " + score;
-        for(i = 0; i < nNewPoints; i++){
+        for (i = 0; i < nNewPoints; i++) {
             setTimeout(function(){score += nPointsPerCorrect;
                                   scoreArea.textContent = "Score: " + score;},
                                   Math.floor(nFeedbackFrames*1000/60/8) + 
                                   i*Math.floor(nFeedbackFrames*1000/60/30));
         }
-        setTimeout(nextTrial, feedbackMs);
+        var retryButton = document.createElement('button');
+        retryButton.onclick = nextTrial;
+        retryButton.textContent = 'Try again';
+        dialogArea.appendChild(replay);
+        dialogArea.appendChild(retryButton);
+        ALL.style.cursor = 'default';
+    } else {
+        if (gamify) {
+            scoreArea.textContent = "Score: " + score;
+            setTimeout(nextTrial, feedbackMs);
+        }
+        dialogArea.appendChild(replay);
     }
 }
 
 function nextTrial(){
-    if(gamify) {
-        scoreArea.style.visibility = "hidden";
+    if(gamify || (isPractice && !allCorrect)) {
+        if (gamify) {
+            scoreArea.style.visibility = "hidden";
+        }
         dialogArea.style.display = "none";
     } else {
         inputArea.style.display = "none";
