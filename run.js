@@ -1,7 +1,8 @@
 
+// Get worker ID
 var decoded = decodeURIComponent(window.location.search);
 var pID = decoded.substring(decoded.indexOf('=')+1);
-var filename = pID + "RDS";
+var filename = pID + 'RDS';
 
 //Change these variables to customize the experiment
 var noRptsWithin                = 4; // There cannot be repeated numbers within this number of stimuli
@@ -18,15 +19,15 @@ var nFeedbackFrames             = 120; // Number of frames feedback is shown (on
 var feedbackMs = 2000;
 var practice_nDgtsToShow        = [2,2]; // Governs the number of digits shown in the practice trials (also governs the number of practice trials--set to [] for no practice).
 
-var blockwise_nTrials = [2,3,5,5,5,5,5];
+var blockwise_nTrials = [5,5,5,5,5,5,5];
 var blockwise_nDgtsToShow = [2,3,4,5,6,7,8];
-var blockwise_minCorrect = [0,0,3,3,3,3,3];
+var blockwise_minCorrect = [3,3,3,3,3,3,3];
 var blockCount;
 
 var nPointsPerCorrect = 30;
 
 var trialCount, frameCount = 0, dgtCount = 0;
-var outputText = "Trial,NumbersShown,Input,NewLine,";
+var outputText = "Trial,NumbersShown,Input\n";
 var dgts = [];
 var isPractice = true;
 var userInput;
@@ -205,7 +206,7 @@ function evaluateSubmission(){
     }
     outputText += (isPractice?0:(trialCount+1)) + "," +
                   dgts[trialCount].toString().replace(/,/g,'-') + "," +
-                  userInput.toString().replace(/,/g,'-') + ",NewLine,";
+                  userInput.toString().replace(/,/g,'-') + "\n";
     if (gamify || (!allCorrect && isPractice)) {
         feedBackScreen();
     } else {
@@ -297,13 +298,13 @@ function nextTrial(){
         if(isPractice){
             afterPracticeScreen();
         } else {
-            saveData();
+            saveDataAndRedirect(filename, outputText, pID);
         }
         return;
     }
     if(!isPractice && dgts[trialCount-1].length && dgts[trialCount].length != dgts[trialCount-1].length){
         if(nAllCorrect < blockwise_minCorrect[blockCount]){
-            saveData();
+            saveDataAndRedirect(filename, outputText, pID);
         } else {
             blockCount++;
             nAllCorrect = 0;
@@ -378,4 +379,26 @@ function autotab(){
     if(fieldArea.children[i].value == " "){
         fieldArea.children[i].value = "";
     }
+}
+
+function saveDataAndRedirect(filename, txt, pID) {
+    filename = 'Data/' + filename;
+	var form = document.createElement('form');
+    document.body.appendChild(form);
+    form.method = 'post';
+	form.action = 'saveData.php';
+	var data = {
+		filename: filename,
+		txt: txt,
+		pID: pID
+	}
+	var name;
+    for (name in data) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = data[name];
+        form.appendChild(input);
+    }
+    form.submit();
 }
